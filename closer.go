@@ -26,8 +26,10 @@ func (c *Closer) Close() {
 	c.closeOnce.Do(func() {
 		c.IsClosing = true
 		close(c.WaitClosing)
+		c.lock.Lock()
 		for _, f := range c.cbs {
 			f()
 		}
+		c.lock.Unlock()
 	})
 }
