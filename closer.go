@@ -3,9 +3,17 @@ package closer
 import "sync"
 
 type Closer struct {
-	lock      sync.Mutex
-	cbs       []func()
-	closeOnce sync.Once
+	lock        sync.Mutex
+	cbs         []func()
+	closeOnce   sync.Once
+	IsClosing   bool
+	WaitClosing chan bool
+}
+
+func NewCloser() Closer {
+	return Closer{
+		WaitClosing: make(chan bool),
+	}
 }
 
 func (c *Closer) OnClose(f func()) {
@@ -16,6 +24,8 @@ func (c *Closer) OnClose(f func()) {
 
 func (c *Closer) Close() {
 	c.closeOnce.Do(func() {
+		c.IsClosing = true
+		close(c.WaitClosing)
 		for _, f := range c.cbs {
 			f()
 		}
